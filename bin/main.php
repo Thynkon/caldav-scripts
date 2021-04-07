@@ -14,6 +14,12 @@ function moveTasks($client = null, $filter_xml = null, $days = null) {
 		exit;
 	}
 
+	$utc_timezone = new \DateTimeZone("UTC");
+
+	// today at 23:59:59
+	$max_time = new DateTime("now", $utc_timezone);
+	$max_time->setTime(23, 59, 59);
+
 	$todos = $client->getCustomReport($filter_xml);
 	foreach ($todos as $todo) {
 		$data = null;
@@ -27,12 +33,22 @@ function moveTasks($client = null, $filter_xml = null, $days = null) {
 
 		$vcalendar = VObject\Reader::read($data);
 
+		$summary = $vcalendar->VTODO->SUMMARY->getValue();
 		$due_date = $vcalendar->VTODO->DUE;
+		// check if task's due date is in the future (tomorrow at 00:00:00)
+		if ($due_date->getDatetime() > $max_time) {
+			echo "'$summary' due date is in the future!!!\n";
+			echo "Skipping...\n";
+			continue;
+		}
+
+		echo "Proceeding to date modification of task: $summary\n";
+
 		$date = new DateTime($due_date);
 		$date->modify(sprintf('+%d day', $days));
 		$vcalendar->VTODO->DUE = $date;
 
-		$last_mod = new DateTime("now", new \DateTimeZone("UTC"));
+		$last_mod = new DateTime("now", $utc_timezone);
 		$vcalendar->VTODO->{'LAST-MODIFIED'} = $last_mod;
 
 		$calendar_data = $vcalendar->serialize();
