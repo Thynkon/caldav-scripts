@@ -12,7 +12,7 @@
  */
 
 require_once('CalDAVCalendar.php');
-require_once('include/XMLDocument.php');
+require_once('XMLDocument.php');
 
 class CalDAVClient
 {
